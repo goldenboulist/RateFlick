@@ -57,6 +57,18 @@ export function EntryCard({ entry, index, onEdit, onDelete }: EntryCardProps) {
           <RatingStars rating={entry.rating} size="sm" />
           <span className="text-sm tabular-nums">({entry.rating.toFixed(1)})</span>
         </p>
+        {entry.genres && entry.genres.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {entry.genres.map((g) => (
+              <span
+                key={g}
+                className="rounded-full bg-[var(--accent-soft)] px-2 py-0.5 text-[10px] font-medium text-[var(--accent)]"
+              >
+                {g}
+              </span>
+            ))}
+          </div>
+        )}
         {entry.description && (
           <p className="line-clamp-2 text-sm text-[var(--muted)]">{entry.description}</p>
         )}

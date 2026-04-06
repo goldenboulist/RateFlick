@@ -94,7 +94,7 @@ export function HomePage() {
       const body = {
         title: data.title,
         rating: data.rating,
-        genre: data.genre,
+        genres: data.genres,
         description: data.description?.trim() || null,
         poster_url: data.posterUrl?.trim() || null,
       };

@@ -8,16 +8,32 @@ import { errorHandler } from "./middleware/errorHandler.js";
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
 
+const allowedOrigins = [
+  "https://rate-flick.maxime-anterion.com",
+  "http://localhost:5173",
+  "http://localhost:3000"
+];
+
 app.use(
   cors({
-    origin: true,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, timestamp: new Date().toISOString() });
+});
+
+app.get("/", (_req, res) => {
+  res.json({ status: "RateFlick API is running" });
 });
 
 app.use("/api/auth", authRouter);

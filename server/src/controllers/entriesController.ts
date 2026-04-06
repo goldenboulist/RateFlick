@@ -7,7 +7,7 @@ export interface EntryRow extends RowDataPacket {
   user_id: string;
   title: string;
   rating: string;
-  genre: string;
+  genres: string | null;
   description: string | null;
   poster_url: string | null;
   created_at: Date;
@@ -17,7 +17,14 @@ export interface EntryRow extends RowDataPacket {
 export async function listEntries(req: Request, res: Response) {
   const userId = req.user!.sub;
   const [rows] = await pool.execute<EntryRow[]>(
-    "SELECT id, user_id, title, rating, genre, description, poster_url, created_at, updated_at FROM entries WHERE user_id = ? ORDER BY created_at DESC",
+    `SELECT e.id, e.user_id, e.title, e.rating, e.description, e.poster_url, e.created_at, e.updated_at,
+     GROUP_CONCAT(g.name) as genres
+     FROM entries e
+     LEFT JOIN entries_genres eg ON e.id = eg.entry_id
+     LEFT JOIN genres g ON eg.genre_id = g.id
+     WHERE e.user_id = ?
+     GROUP BY e.id
+     ORDER BY e.created_at DESC`,
     [userId]
   );
   res.json(rows.map(serializeEntry));
@@ -25,10 +32,10 @@ export async function listEntries(req: Request, res: Response) {
 
 export async function createEntry(req: Request, res: Response) {
   const userId = req.user!.sub;
-  const { title, rating, genre, description, poster_url } = req.body as {
+  const { title, rating, genres, description, poster_url } = req.body as {
     title?: string;
     rating?: number;
-    genre?: string;
+    genres?: string[];
     description?: string | null;
     poster_url?: string | null;
   };
@@ -40,24 +47,58 @@ export async function createEntry(req: Request, res: Response) {
     return res.status(400).json({ message: "Note entre 0 et 5" });
   }
   const id = crypto.randomUUID();
-  await pool.execute(
-    "INSERT INTO entries (id, user_id, title, rating, genre, description, poster_url) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    [id, userId, title.trim(), r, genre || "Autre", description ?? null, poster_url ?? null]
-  );
-  const [rows] = await pool.execute<EntryRow[]>(
-    "SELECT id, user_id, title, rating, genre, description, poster_url, created_at, updated_at FROM entries WHERE id = ?",
-    [id]
-  );
-  res.status(201).json(serializeEntry(rows[0]));
+  
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    await connection.execute(
+      "INSERT INTO entries (id, user_id, title, rating, description, poster_url) VALUES (?, ?, ?, ?, ?, ?)",
+      [id, userId, title.trim(), r, description ?? null, poster_url ?? null]
+    );
+
+    if (genres && genres.length > 0) {
+      for (const genreName of genres) {
+        await connection.execute(
+          "INSERT INTO entries_genres (entry_id, genre_id) SELECT ?, id FROM genres WHERE name = ?",
+          [id, genreName]
+        );
+      }
+    } else {
+      await connection.execute(
+        "INSERT INTO entries_genres (entry_id, genre_id) SELECT ?, id FROM genres WHERE name = 'Autre'",
+        [id]
+      );
+    }
+
+    await connection.commit();
+
+    const [rows] = await connection.execute<EntryRow[]>(
+      `SELECT e.id, e.user_id, e.title, e.rating, e.description, e.poster_url, e.created_at, e.updated_at,
+       GROUP_CONCAT(g.name) as genres
+       FROM entries e
+       LEFT JOIN entries_genres eg ON e.id = eg.entry_id
+       LEFT JOIN genres g ON eg.genre_id = g.id
+       WHERE e.id = ?
+       GROUP BY e.id`,
+      [id]
+    );
+    res.status(201).json(serializeEntry(rows[0]));
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
 }
 
 export async function updateEntry(req: Request, res: Response) {
   const userId = req.user!.sub;
   const { id } = req.params;
-  const { title, rating, genre, description, poster_url } = req.body as {
+  const { title, rating, genres, description, poster_url } = req.body as {
     title?: string;
     rating?: number;
-    genre?: string;
+    genres?: string[];
     description?: string | null;
     poster_url?: string | null;
   };
@@ -68,18 +109,56 @@ export async function updateEntry(req: Request, res: Response) {
   if (Number.isNaN(r) || r < 0 || r > 5) {
     return res.status(400).json({ message: "Note entre 0 et 5" });
   }
-  const [result] = await pool.execute<ResultSetHeader>(
-    "UPDATE entries SET title = ?, rating = ?, genre = ?, description = ?, poster_url = ? WHERE id = ? AND user_id = ?",
-    [title.trim(), r, genre || "Autre", description ?? null, poster_url ?? null, id, userId]
-  );
-  if (!result.affectedRows) {
-    return res.status(404).json({ message: "Entrée introuvable" });
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [result] = await connection.execute<ResultSetHeader>(
+      "UPDATE entries SET title = ?, rating = ?, description = ?, poster_url = ? WHERE id = ? AND user_id = ?",
+      [title.trim(), r, description ?? null, poster_url ?? null, id, userId]
+    );
+
+    if (!result.affectedRows) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Entrée introuvable" });
+    }
+
+    // Update genres: delete existing and insert new ones
+    await connection.execute("DELETE FROM entries_genres WHERE entry_id = ?", [id]);
+    if (genres && genres.length > 0) {
+      for (const genreName of genres) {
+        await connection.execute(
+          "INSERT INTO entries_genres (entry_id, genre_id) SELECT ?, id FROM genres WHERE name = ?",
+          [id, genreName]
+        );
+      }
+    } else {
+      await connection.execute(
+        "INSERT INTO entries_genres (entry_id, genre_id) SELECT ?, id FROM genres WHERE name = 'Autre'",
+        [id]
+      );
+    }
+
+    await connection.commit();
+
+    const [rows] = await connection.execute<EntryRow[]>(
+      `SELECT e.id, e.user_id, e.title, e.rating, e.description, e.poster_url, e.created_at, e.updated_at,
+       GROUP_CONCAT(g.name) as genres
+       FROM entries e
+       LEFT JOIN entries_genres eg ON e.id = eg.entry_id
+       LEFT JOIN genres g ON eg.genre_id = g.id
+       WHERE e.id = ?
+       GROUP BY e.id`,
+      [id]
+    );
+    res.json(serializeEntry(rows[0]));
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
   }
-  const [rows] = await pool.execute<EntryRow[]>(
-    "SELECT id, user_id, title, rating, genre, description, poster_url, created_at, updated_at FROM entries WHERE id = ?",
-    [id]
-  );
-  res.json(serializeEntry(rows[0]));
 }
 
 export async function deleteEntry(req: Request, res: Response) {
@@ -101,7 +180,7 @@ function serializeEntry(row: EntryRow) {
     userId: row.user_id,
     title: row.title,
     rating: parseFloat(row.rating),
-    genre: row.genre,
+    genres: row.genres ? row.genres.split(",") : [],
     description: row.description,
     posterUrl: row.poster_url,
     createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,

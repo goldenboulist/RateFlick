@@ -17,7 +17,7 @@ export function filterAndSortEntries(
   }
 
   if (selectedGenres.size > 0) {
-    list = list.filter((e) => selectedGenres.has(e.genre));
+    list = list.filter((e) => e.genres.some((g) => selectedGenres.has(g)));
   }
 
   const sorted = [...list];

@@ -12,7 +12,7 @@ const POSTER_HELP_URL = "https://www.themoviedb.org/";
 const schema = z.object({
   title: z.string().min(1, "Titre requis"),
   rating: z.number().min(0).max(5),
-  genre: z.string().min(1, "Genre requis"),
+  genres: z.array(z.string()).min(1, "Au moins un genre requis"),
   description: z.string().optional(),
   posterUrl: z
     .string()
@@ -50,15 +50,26 @@ export function EntryForm({
     defaultValues: {
       title: initial?.title ?? "",
       rating: initial?.rating ?? 3,
-      genre: initial?.genre ?? "Autre",
+      genres: initial?.genres ?? ["Autre"],
       description: initial?.description ?? "",
       posterUrl: initial?.posterUrl ?? "",
     },
   });
 
   const rating = watch("rating");
-  const genre = watch("genre");
+  const genres = watch("genres");
   const posterUrl = watch("posterUrl");
+
+  const toggleGenre = (g: string) => {
+    const current = genres || [];
+    if (current.includes(g)) {
+      if (current.length > 1) {
+        setValue("genres", current.filter((x) => x !== g));
+      }
+    } else {
+      setValue("genres", [...current, g]);
+    }
+  };
 
   useEffect(() => {
     if (!initial) {
@@ -89,17 +100,16 @@ export function EntryForm({
       </div>
 
       <div>
-        <span className="mb-2 block text-sm text-[var(--muted)]">Genre</span>
-        <input type="hidden" {...register("genre")} />
+        <span className="mb-2 block text-sm text-[var(--muted)]">Genres</span>
         <div className="flex flex-wrap gap-2">
           {GENRES.map((g) => (
             <button
               key={g}
               type="button"
-              onClick={() => setValue("genre", g)}
+              onClick={() => toggleGenre(g)}
               className={
                 "interactive inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.98] " +
-                (genre === g
+                (genres?.includes(g)
                   ? "bg-[var(--accent)] text-[var(--on-accent)] border-[var(--ring)]"
                   : "border-[var(--border)] text-[var(--muted)] bg-transparent hover:text-[var(--fg)]")
               }
@@ -108,8 +118,8 @@ export function EntryForm({
             </button>
           ))}
         </div>
-        {errors.genre && (
-          <p className="mt-1 text-sm text-red-500">{errors.genre.message}</p>
+        {errors.genres && (
+          <p className="mt-1 text-sm text-red-500">{errors.genres.message}</p>
         )}
       </div>
 
