@@ -26,9 +26,21 @@ export function filterAndSortEntries(
   } else if (active.has("sortZa")) {
     sorted.sort((a, b) => b.title.localeCompare(a.title, "fr"));
   } else if (active.has("sortRatingAsc")) {
-    sorted.sort((a, b) => a.rating - b.rating);
+    sorted.sort((a, b) => {
+      if (a.rating !== b.rating) return a.rating - b.rating;
+      return b.rankOrder - a.rankOrder;
+    });
   } else if (active.has("sortRatingDesc")) {
-    sorted.sort((a, b) => b.rating - a.rating);
+    sorted.sort((a, b) => {
+      if (a.rating !== b.rating) return b.rating - a.rating;
+      return a.rankOrder - b.rankOrder;
+    });
+  } else if (active.size === 0) {
+    // Default: Sort by rating DESC, then rankOrder ASC
+    sorted.sort((a, b) => {
+      if (a.rating !== b.rating) return b.rating - a.rating;
+      return a.rankOrder - b.rankOrder;
+    });
   }
 
   return sorted;

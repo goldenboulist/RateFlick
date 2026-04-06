@@ -1,3 +1,20 @@
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -29,6 +46,7 @@ export function HomePage() {
   const { theme, setTheme } = useTheme();
 
   const entries = useEntriesStore((s) => s.entries);
+  const setEntries = useEntriesStore((s) => s.setEntries);
   const upsertEntry = useEntriesStore((s) => s.upsertEntry);
   const removeEntry = useEntriesStore((s) => s.removeEntry);
 
@@ -45,6 +63,17 @@ export function HomePage() {
   const [deleting, setDeleting] = useState(false);
 
   useEntriesLoader(!!user);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const filtered = useMemo(
     () =>
@@ -80,6 +109,41 @@ export function HomePage() {
       else next.add(genre);
       return next;
     });
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = filtered.findIndex((e) => e.id === active.id);
+    const newIndex = filtered.findIndex((e) => e.id === over.id);
+
+    const newList = arrayMove(filtered, oldIndex, newIndex);
+
+    // Update rankOrder for all entries in the filtered list
+    const updatedEntries = entries.map((e) => {
+      const foundIndex = newList.findIndex((n) => n.id === e.id);
+      if (foundIndex !== -1) {
+        return { ...e, rankOrder: foundIndex };
+      }
+      return e;
+    });
+
+    setEntries(updatedEntries);
+
+    // Persist to server
+    try {
+      const ranks = newList.map((e, index) => ({
+        id: e.id,
+        rank_order: index,
+      }));
+      await apiFetch("/entries/ranks", {
+        method: "PUT",
+        body: JSON.stringify({ ranks }),
+      });
+    } catch (error) {
+      console.error("Failed to update ranks:", error);
+    }
   }
 
   async function handleLogout() {
@@ -175,27 +239,38 @@ export function HomePage() {
         />
       </div>
 
-      <div
-        className="grid gap-6"
-        style={{
-          gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-        }}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
       >
-        <AnimatePresence initial={false}>
-          {filtered.map((entry, i) => (
-            <EntryCard
-              key={entry.id}
-              entry={entry}
-              index={i}
-              onEdit={(e) => {
-                setEditing(e);
-                setModalOpen(true);
-              }}
-              onDelete={setDeleteTarget}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
+        <div
+          className="grid gap-6"
+          style={{
+            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+          }}
+        >
+          <SortableContext
+            items={filtered.map((e) => e.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <AnimatePresence initial={false}>
+              {filtered.map((entry, i) => (
+                <SortableEntryCard
+                  key={entry.id}
+                  entry={entry}
+                  index={i}
+                  onEdit={(e) => {
+                    setEditing(e);
+                    setModalOpen(true);
+                  }}
+                  onDelete={setDeleteTarget}
+                />
+              ))}
+            </AnimatePresence>
+          </SortableContext>
+        </div>
+      </DndContext>
 
       {filtered.length === 0 && (
         <p className="py-16 text-center text-[var(--muted)]">
@@ -234,3 +309,33 @@ export function HomePage() {
     </div>
   );
 }
+
+function SortableEntryCard(props: {
+  entry: Entry;
+  index: number;
+  onEdit: (e: Entry) => void;
+  onDelete: (e: Entry) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: props.entry.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <EntryCard {...props} />
+    </div>
+  );
+}
+

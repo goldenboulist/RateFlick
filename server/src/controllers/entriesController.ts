@@ -7,6 +7,7 @@ export interface EntryRow extends RowDataPacket {
   user_id: string;
   title: string;
   rating: string;
+  rank_order: number;
   genres: string | null;
   description: string | null;
   poster_url: string | null;
@@ -17,14 +18,14 @@ export interface EntryRow extends RowDataPacket {
 export async function listEntries(req: Request, res: Response) {
   const userId = req.user!.sub;
   const [rows] = await pool.execute<EntryRow[]>(
-    `SELECT e.id, e.user_id, e.title, e.rating, e.description, e.poster_url, e.created_at, e.updated_at,
+    `SELECT e.id, e.user_id, e.title, e.rating, e.rank_order, e.description, e.poster_url, e.created_at, e.updated_at,
      GROUP_CONCAT(g.name) as genres
      FROM entries e
      LEFT JOIN entries_genres eg ON e.id = eg.entry_id
      LEFT JOIN genres g ON eg.genre_id = g.id
      WHERE e.user_id = ?
      GROUP BY e.id
-     ORDER BY e.created_at DESC`,
+     ORDER BY e.rating DESC, e.rank_order ASC, e.created_at DESC`,
     [userId]
   );
   res.json(rows.map(serializeEntry));
@@ -53,8 +54,8 @@ export async function createEntry(req: Request, res: Response) {
     await connection.beginTransaction();
 
     await connection.execute(
-      "INSERT INTO entries (id, user_id, title, rating, description, poster_url) VALUES (?, ?, ?, ?, ?, ?)",
-      [id, userId, title.trim(), r, description ?? null, poster_url ?? null]
+      "INSERT INTO entries (id, user_id, title, rating, description, poster_url, rank_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [id, userId, title.trim(), r, description ?? null, poster_url ?? null, 0]
     );
 
     if (genres && genres.length > 0) {
@@ -74,7 +75,7 @@ export async function createEntry(req: Request, res: Response) {
     await connection.commit();
 
     const [rows] = await connection.execute<EntryRow[]>(
-      `SELECT e.id, e.user_id, e.title, e.rating, e.description, e.poster_url, e.created_at, e.updated_at,
+      `SELECT e.id, e.user_id, e.title, e.rating, e.rank_order, e.description, e.poster_url, e.created_at, e.updated_at,
        GROUP_CONCAT(g.name) as genres
        FROM entries e
        LEFT JOIN entries_genres eg ON e.id = eg.entry_id
@@ -115,8 +116,8 @@ export async function updateEntry(req: Request, res: Response) {
     await connection.beginTransaction();
 
     const [result] = await connection.execute<ResultSetHeader>(
-      "UPDATE entries SET title = ?, rating = ?, description = ?, poster_url = ? WHERE id = ? AND user_id = ?",
-      [title.trim(), r, description ?? null, poster_url ?? null, id, userId]
+      "UPDATE entries SET title = ?, rating = ?, description = ?, poster_url = ?, rank_order = ? WHERE id = ? AND user_id = ?",
+      [title.trim(), r, description ?? null, poster_url ?? null, (req.body as any).rank_order ?? 0, id, userId]
     );
 
     if (!result.affectedRows) {
@@ -143,7 +144,7 @@ export async function updateEntry(req: Request, res: Response) {
     await connection.commit();
 
     const [rows] = await connection.execute<EntryRow[]>(
-      `SELECT e.id, e.user_id, e.title, e.rating, e.description, e.poster_url, e.created_at, e.updated_at,
+      `SELECT e.id, e.user_id, e.title, e.rating, e.rank_order, e.description, e.poster_url, e.created_at, e.updated_at,
        GROUP_CONCAT(g.name) as genres
        FROM entries e
        LEFT JOIN entries_genres eg ON e.id = eg.entry_id
@@ -174,12 +175,42 @@ export async function deleteEntry(req: Request, res: Response) {
   res.status(204).send();
 }
 
+export async function updateRanks(req: Request, res: Response) {
+  const userId = req.user!.sub;
+  const { ranks } = req.body as { ranks: { id: string; rank_order: number }[] };
+
+  if (!Array.isArray(ranks)) {
+    return res.status(400).json({ message: "Tableau de rangs requis" });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    for (const item of ranks) {
+      await connection.execute(
+        "UPDATE entries SET rank_order = ? WHERE id = ? AND user_id = ?",
+        [item.rank_order, item.id, userId]
+      );
+    }
+
+    await connection.commit();
+    res.json({ success: true });
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
 function serializeEntry(row: EntryRow) {
   return {
     id: row.id,
     userId: row.user_id,
     title: row.title,
     rating: parseFloat(row.rating),
+    rankOrder: row.rank_order,
     genres: row.genres ? row.genres.split(",") : [],
     description: row.description,
     posterUrl: row.poster_url,

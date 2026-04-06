@@ -8,6 +8,7 @@ export interface Entry {
   userId: string;
   title: string;
   rating: number;
+  rankOrder: number;
   genres: string[];
   description: string | null;
   posterUrl: string | null;

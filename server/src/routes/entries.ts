@@ -5,6 +5,7 @@ import {
   deleteEntry,
   listEntries,
   updateEntry,
+  updateRanks,
 } from "../controllers/entriesController.js";
 
 export const entriesRouter = Router();
@@ -12,5 +13,6 @@ export const entriesRouter = Router();
 entriesRouter.use(authMiddleware);
 entriesRouter.get("/", listEntries);
 entriesRouter.post("/", createEntry);
+entriesRouter.put("/ranks", updateRanks);
 entriesRouter.put("/:id", updateEntry);
 entriesRouter.delete("/:id", deleteEntry);
