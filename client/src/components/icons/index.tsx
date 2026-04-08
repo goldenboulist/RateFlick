@@ -182,3 +182,17 @@ export function IconPalette({ size = 16, className, ...p }: IconProps) {
     </svg>
   );
 }
+
+export function IconCheck({ size = 16, className, ...p }: IconProps) {
+  return (
+    <svg
+      {...baseProps(size)}
+      className={className}
+      stroke="currentColor"
+      strokeWidth={2}
+      {...p}
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+    </svg>
+  );
+}
