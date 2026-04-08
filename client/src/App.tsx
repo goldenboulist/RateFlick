@@ -3,6 +3,7 @@ import { useAuth } from "./hooks/useAuth";
 import { useAuthPersistReady } from "./hooks/usePersistReady";
 import { AuthPage } from "./pages/AuthPage";
 import { HomePage } from "./pages/HomePage";
+import { ProfilePage } from "./pages/ProfilePage";
 
 function Protected({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
@@ -32,6 +33,14 @@ export default function App() {
         element={
           <Protected>
             <HomePage />
+          </Protected>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <Protected>
+            <ProfilePage />
           </Protected>
         }
       />
