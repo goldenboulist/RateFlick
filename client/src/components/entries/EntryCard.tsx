@@ -32,7 +32,7 @@ export function EntryCard({ entry, index, onEdit, onDelete }: EntryCardProps) {
       variants={cardVariants}
       initial="hidden"
       animate="visible"
-      whileHover={{ y: -4 }}
+      whileHover={{ y: -12 }}
       transition={{ type: "spring", stiffness: 400, damping: 28 }}
       className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-lg interactive hover:border-[var(--muted)]/30 hover:shadow-xl"
     >
@@ -41,10 +41,10 @@ export function EntryCard({ entry, index, onEdit, onDelete }: EntryCardProps) {
           <img
             src={entry.posterUrl}
             alt=""
-            className="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-105"
+            className="h-full w-full object-cover transition duration-500 ease-out group-hover:scale-110"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-[var(--muted)] transition duration-300 group-hover:scale-105">
+          <div className="flex h-full w-full items-center justify-center text-[var(--muted)] transition duration-300 group-hover:scale-110">
             <IconFilm size={56} />
           </div>
         )}
