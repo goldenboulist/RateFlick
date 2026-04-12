@@ -25,4 +25,14 @@ export type ThemeId =
   | "gold"
   | "ocean"
   | "coral-reef"
-  | "warm-sunset";
+  | "warm-sunset"
+  | "amethyst"
+  | "rose-ember"
+  | "blood-moon"
+  | "pumpkin-spice"
+  | "sand-dune"
+  | "bioluminescent"
+  | "arctic-aurora"
+  | "neon-noir"
+  | "poison-ivy";
+

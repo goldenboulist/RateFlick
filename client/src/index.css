@@ -4,20 +4,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tokens: surface hierarchy, readable contrast, one accent per theme (front-end UI patterns) */
-
-[data-theme="dark"] {
-  --bg: #09090b;
-  --card: #18181b;
-  --border: #27272a;
-  --fg: #fafafa;
-  --muted: #a1a1aa;
-  --accent: #6366f1;
-  --accent-soft: rgba(99, 102, 241, 0.14);
-  --on-accent: #ffffff;
-  --ring: #818cf8;
-  color-scheme: dark;
-}
 
 [data-theme="light"] {
   --bg: #f4f4f5;
@@ -97,6 +83,19 @@
   color-scheme: light;
 }
 
+[data-theme="dark"] {
+  --bg: #09090b;
+  --card: #18181b;
+  --border: #27272a;
+  --fg: #fafafa;
+  --muted: #a1a1aa;
+  --accent: #6366f1;
+  --accent-soft: rgba(99, 102, 241, 0.14);
+  --on-accent: #ffffff;
+  --ring: #818cf8;
+  color-scheme: dark;
+}
+
 [data-theme="coral-reef"] {
   --bg: #1a1a2e;              
   --card: #16213e;            
@@ -111,15 +110,132 @@
 }
 
 [data-theme="warm-sunset"] {
-  --bg: #1c1917;              /* fond principal (brun très sombre) */
-  --card: #292524;            /* surfaces légèrement plus claires */
-  --border: #3a3533;          /* séparation subtile */
-  --fg: #fef3c7;              /* texte principal (chaud, crème) */
-  --muted: #d6d3d1;           /* texte secondaire */
-  --accent: #f59e0b;          /* orange sunset */
-  --accent-soft: rgba(245, 158, 11, 0.15); /* accent doux */
-  --on-accent: #1c1917;       /* texte sur accent (contraste lisible) */
-  --ring: #f59e0b;            /* focus */
+  --bg: #1c1917;              
+  --card: #292524;            
+  --border: #3a3533;         
+  --fg: #fef3c7;              
+  --muted: #d6d3d1;           
+  --accent: #f59e0b;         
+  --accent-soft: rgba(245, 158, 11, 0.15); 
+  --on-accent: #1c1917;       
+  --ring: #f59e0b;            
+  color-scheme: dark;
+}
+
+[data-theme="amethyst"] {
+  --bg: #1b0a2e;               
+  --card: #2a1045;             
+  --border: #3a1a5e;           
+  --fg: #f0e6ff;               
+  --muted: #d09cf5;            
+  --accent: #bf5af2;           
+  --accent-soft: rgba(191, 90, 242, 0.18); 
+  --on-accent: #1b0a2e;       
+  --ring: #d09cf5;            
+  color-scheme: dark;
+}
+
+[data-theme="rose-ember"] {
+  --bg: #1f1215;
+  --card: #2d1b20;
+  --border: #3a242a;
+  --fg: #ffe4e6;
+  --muted: #fda4af;
+  --accent: #fb7185;
+  --accent-soft: rgba(251, 113, 133, 0.18);
+  --on-accent: #1f1215;
+  --ring: #fda4af;
+  color-scheme: dark;
+}
+
+[data-theme="blood-moon"] {
+  --bg: #110000;
+  --card: #1f0505;
+  --border: #3a0d0d;
+  --fg: #ffe5e5;
+  --muted: #ff9999;
+  --accent: #e63946;
+  --accent-soft: rgba(230, 57, 70, 0.18);
+  --on-accent: #110000;
+  --ring: #ff9999;
+  color-scheme: dark;
+}
+
+[data-theme="pumpkin-spice"] {
+  --bg: #1a0e00;
+  --card: #2c1800;
+  --border: #3d2405;
+  --fg: #fef9c3;
+  --muted: #fcd34d;
+  --accent: #ea7317;
+  --accent-soft: rgba(234, 115, 23, 0.18);
+  --on-accent: #1a0e00;
+  --ring: #fcd34d;
+  color-scheme: dark;
+}
+
+[data-theme="sand-dune"] {
+  --bg: #1c1a14;
+  --card: #2e2b1e;
+  --border: #3f3a28;
+  --fg: #fefce8;
+  --muted: #d9b99b;
+  --accent: #d4a853;
+  --accent-soft: rgba(212, 168, 83, 0.18);
+  --on-accent: #1c1a14;
+  --ring: #d9b99b;
+  color-scheme: dark;
+}
+
+[data-theme="bioluminescent"] {
+  --bg: #020f14;
+  --card: #051f2e;
+  --border: #0b2e3d;
+  --fg: #e6fff9;
+  --muted: #5eead4;
+  --accent: #00ffcc;
+  --accent-soft: rgba(0, 255, 204, 0.18);
+  --on-accent: #020f14;
+  --ring: #5eead4;
+  color-scheme: dark;
+}
+
+[data-theme="arctic-aurora"] {
+  --bg: #0a0e1a;
+  --card: #0d1f2d;
+  --border: #163244;
+  --fg: #ccfbf1;
+  --muted: #5eead4;
+  --accent: #00d4aa;
+  --accent-soft: rgba(0, 212, 170, 0.18);
+  --on-accent: #0a0e1a;
+  --ring: #5eead4;
+  color-scheme: dark;
+}
+
+[data-theme="neon-noir"] {
+  --bg: #030712;
+  --card: #0d1117;
+  --border: #1a222d;
+  --fg: #d1fae5;
+  --muted: #4ade80;
+  --accent: #39ff14;
+  --accent-soft: rgba(57, 255, 20, 0.18);
+  --on-accent: #030712;
+  --ring: #4ade80;
+  color-scheme: dark;
+}
+
+[data-theme="poison-ivy"] {
+  --bg: #050f05;
+  --card: #091909;
+  --border: #123012;
+  --fg: #f7fee7;
+  --muted: #bef264;
+  --accent: #84cc16;
+  --accent-soft: rgba(132, 204, 22, 0.18);
+  --on-accent: #050f05;
+  --ring: #bef264;
   color-scheme: dark;
 }
 
